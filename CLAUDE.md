@@ -2,6 +2,10 @@
 
 > MCP server that extracts reusable knowledge from Claude Code conversations.
 
+## 현재 작업
+
+→ [ROADMAP.md](ROADMAP.md) Phase 1: 룰 생성/진화
+
 ## Build & Run
 
 | Command | Action |
@@ -29,7 +33,7 @@ shared/          ← Extraction prompts
 | `learn(transcript_path)` | Extract knowledge from transcript |
 | `profile()` | Knowledge statistics |
 | `digest()` | Duplicate detection + stale analysis |
-| `memory(action, id)` | Promote/demote/delete entries |
+| `memory(action, id)` | Promote/demote/delete + crystallize (Phase 1) |
 
 ## Scope
 
