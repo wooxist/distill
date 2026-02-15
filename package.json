@@ -1,7 +1,7 @@
 {
-  "name": "distill",
+  "name": "oh-my-distill",
   "version": "1.0.0",
-  "description": "Distill knowledge from Claude Code conversations",
+  "description": "Distill reusable knowledge from Claude Code conversations",
   "type": "module",
   "bin": {
     "distill": "./build/server.js"
@@ -18,7 +18,7 @@
     "distill"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
