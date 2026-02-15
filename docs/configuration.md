@@ -2,7 +2,7 @@
 
 ## API Key
 
-Oh My Distill requires an Anthropic API key for knowledge extraction:
+Distill requires an Anthropic API key for knowledge extraction:
 
 ```bash
 export ANTHROPIC_API_KEY="your-api-key"
@@ -21,7 +21,7 @@ Add to `~/.claude/mcp.json`:
   "mcpServers": {
     "distill": {
       "command": "node",
-      "args": ["/absolute/path/to/oh-my-distill/build/server.js"]
+      "args": ["/absolute/path/to/distill/build/server.js"]
     }
   }
 }
@@ -54,13 +54,13 @@ cp hooks/hooks.json ~/.claude/hooks.json
     "PreCompact": [
       {
         "type": "command",
-        "command": "node /absolute/path/to/oh-my-distill/build/hooks/distill-hook.js"
+        "command": "node /absolute/path/to/distill/build/hooks/distill-hook.js"
       }
     ],
     "SessionEnd": [
       {
         "type": "command",
-        "command": "node /absolute/path/to/oh-my-distill/build/hooks/distill-hook.js"
+        "command": "node /absolute/path/to/distill/build/hooks/distill-hook.js"
       }
     ]
   }

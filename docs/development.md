@@ -8,8 +8,8 @@
 ## Setup
 
 ```bash
-git clone https://github.com/your-username/oh-my-distill.git
-cd oh-my-distill
+git clone https://github.com/your-username/distill.git
+cd distill
 npm install
 ```
 

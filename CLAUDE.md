@@ -1,4 +1,4 @@
-# Oh My Distill
+# Distill
 
 > MCP server that extracts reusable knowledge from Claude Code conversations.
 

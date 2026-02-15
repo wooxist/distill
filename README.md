@@ -1,20 +1,19 @@
-# Oh My Distill
+# Distill
 
 > Automatically distill reusable knowledge from your Claude Code conversations.
 
-Oh My Distill is an MCP (Model Context Protocol) server that analyzes your AI coding conversations and extracts patterns, preferences, decisions, and lessons learned — so Claude remembers what matters across sessions.
+Distill is an MCP (Model Context Protocol) server that analyzes your AI coding conversations and extracts patterns, preferences, decisions, and lessons learned — so Claude remembers what matters across sessions.
 
 ## How It Works
 
-When you work with Claude Code, valuable knowledge emerges through conversation — corrections you make, patterns you establish, architectural decisions you commit to. Oh My Distill captures these automatically.
+When you work with Claude Code, valuable knowledge emerges through conversation — corrections you make, patterns you establish, architectural decisions you commit to. Distill captures these automatically.
 
 **Extraction signals** (ordered by confidence):
 
-1. **Corrections** — You said "no, that's wrong" and a correct conclusion was reached
+1. **Decision signals** — Any moment a direction was set: corrections (either party), convergence after discussion, or selection among alternatives
 2. **Explicit preferences** — "always use X", "I prefer Y"
 3. **Error resolutions** — An error occurred, root cause found, solution applied
-4. **Repeated patterns** — Code or architecture patterns appearing multiple times
-5. **Architectural decisions** — Technology choices, structural conventions
+4. **Accumulated patterns** — Repeated code/architecture patterns or consistent decision directions
 
 Each extracted piece of knowledge is classified by type, scope, and confidence, then stored locally in SQLite with full-text search.
 
@@ -23,8 +22,8 @@ Each extracted piece of knowledge is classified by type, scope, and confidence, 
 ### 1. Clone and build
 
 ```bash
-git clone https://github.com/your-username/oh-my-distill.git
-cd oh-my-distill
+git clone https://github.com/your-username/distill.git
+cd distill
 npm install
 npm run build
 ```
@@ -38,7 +37,7 @@ Add to `~/.claude/mcp.json`:
   "mcpServers": {
     "distill": {
       "command": "node",
-      "args": ["/absolute/path/to/oh-my-distill/build/server.js"]
+      "args": ["/absolute/path/to/distill/build/server.js"]
     }
   }
 }
@@ -46,7 +45,7 @@ Add to `~/.claude/mcp.json`:
 
 ### 3. Set up API key
 
-Oh My Distill uses the Anthropic API for knowledge extraction:
+Distill uses the Anthropic API for knowledge extraction:
 
 ```bash
 export ANTHROPIC_API_KEY="your-api-key"

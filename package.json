@@ -1,5 +1,5 @@
 {
-  "name": "oh-my-distill",
+  "name": "distill",
   "version": "1.0.0",
   "description": "Distill reusable knowledge from Claude Code conversations",
   "type": "module",

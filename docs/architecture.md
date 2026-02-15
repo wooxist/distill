@@ -1,6 +1,6 @@
 # Architecture
 
-Oh My Distill is structured in four layers: **Store**, **Extractor**, **Tools**, and **Hooks**.
+Distill is structured in four layers: **Store**, **Extractor**, **Tools**, and **Hooks**.
 
 ## Data Flow
 
