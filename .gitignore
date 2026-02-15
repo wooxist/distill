@@ -1,4 +1,28 @@
-node_modules/
-build/
-*.tsbuildinfo
+# OS
 .DS_Store
+
+# TypeScript
+ts/node_modules/
+ts/build/
+*.tsbuildinfo
+
+# Python
+python/__pycache__/
+python/**/__pycache__/
+python/*.pyc
+python/.venv/
+python/*.egg-info/
+
+# Dart
+dart/.dart_tool/
+dart/.packages
+dart/.pub/
+dart/pubspec.lock
+
+# Distill data
+.distill/
+
+# IDE
+.idea/
+.vscode/
+*.swp
