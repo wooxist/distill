@@ -2,9 +2,9 @@
 
 > MCP server that extracts reusable knowledge from Claude Code conversations.
 
-## 현재 작업
+## Current Work
 
-→ [ROADMAP.md](ROADMAP.md) Phase 1: 룰 생성/진화
+Phase 1 complete. See [ROADMAP.md](ROADMAP.md) for Phase 2 planning.
 
 ## Build & Run
 
@@ -18,11 +18,12 @@
 ## Architecture
 
 ```
+src/config.ts    ← Config loader (.distill/config.json, per-module model)
 src/store/       ← SQLite metadata + FTS5 search
-src/extractor/   ← .jsonl parsing + Anthropic API extraction
+src/extractor/   ← .jsonl parsing + Anthropic API extraction + crystallize + rules reader
 src/tools/       ← 5 MCP Tools (recall, learn, profile, digest, memory)
 src/hooks/       ← PreCompact/SessionEnd event handlers
-shared/          ← Extraction prompts
+shared/          ← Extraction prompts (SSOT)
 ```
 
 ## MCP Tools
@@ -30,10 +31,24 @@ shared/          ← Extraction prompts
 | Tool | Description |
 |------|-------------|
 | `recall(query)` | Search knowledge by semantic query |
-| `learn(transcript_path)` | Extract knowledge from transcript |
+| `learn(transcript_path)` | Extract knowledge from transcript (auto-crystallize if threshold met) |
 | `profile()` | Knowledge statistics |
 | `digest()` | Duplicate detection + stale analysis |
-| `memory(action, id)` | Promote/demote/delete + crystallize (Phase 1) |
+| `memory(action, id?)` | promote/demote/delete/crystallize |
+
+## Configuration
+
+Config file: `.distill/config.json` (project) or `~/.distill/config.json` (global).
+Project config overrides global. All fields optional (zero-config).
+
+```json
+{
+  "extraction_model": "claude-haiku-4-5-20251001",
+  "crystallize_model": "claude-sonnet-4-5-20250929",
+  "max_transcript_chars": 100000,
+  "auto_crystallize_threshold": 0
+}
+```
 
 ## Scope
 

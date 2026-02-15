@@ -12,7 +12,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS knowledge (
   id TEXT PRIMARY KEY,
   content TEXT NOT NULL,
-  type TEXT NOT NULL CHECK(type IN ('pattern','preference','decision','mistake','workaround')),
+  type TEXT NOT NULL CHECK(type IN ('pattern','preference','decision','mistake','workaround','conflict')),
   scope TEXT NOT NULL CHECK(scope IN ('global','project')),
   project TEXT,
   tags TEXT NOT NULL DEFAULT '[]',
@@ -28,6 +28,11 @@ CREATE TABLE IF NOT EXISTS knowledge (
 CREATE INDEX IF NOT EXISTS idx_knowledge_scope ON knowledge(scope);
 CREATE INDEX IF NOT EXISTS idx_knowledge_type ON knowledge(type);
 CREATE INDEX IF NOT EXISTS idx_knowledge_project ON knowledge(project);
+
+CREATE TABLE IF NOT EXISTS distill_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `;
 
 /** Metadata store backed by SQLite */
@@ -172,6 +177,39 @@ export class MetadataStore {
     }
 
     return { total, byType, byScope };
+  }
+
+  /** Get all knowledge chunks (for crystallize) */
+  getAll(): KnowledgeChunk[] {
+    const rows = this.db
+      .prepare("SELECT * FROM knowledge ORDER BY created_at ASC")
+      .all() as RawRow[];
+    return rows.map(rowToChunk);
+  }
+
+  /** Count chunks created after a given timestamp */
+  countSince(timestamp: string): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) as cnt FROM knowledge WHERE created_at > ?")
+      .get(timestamp) as { cnt: number };
+    return row.cnt;
+  }
+
+  /** Get a distill_meta value */
+  getMeta(key: string): string | null {
+    const row = this.db
+      .prepare("SELECT value FROM distill_meta WHERE key = ?")
+      .get(key) as { value: string } | undefined;
+    return row?.value ?? null;
+  }
+
+  /** Set a distill_meta value */
+  setMeta(key: string, value: string): void {
+    this.db
+      .prepare(
+        "INSERT INTO distill_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+      )
+      .run(key, value);
   }
 
   /** Close the database connection */

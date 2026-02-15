@@ -9,6 +9,12 @@ build/
 # Distill data
 .distill/
 
+# Handoff
+HANDOFF.md
+
+# Claude local settings
+.claude/settings.local.json
+
 # IDE
 .idea/
 .vscode/

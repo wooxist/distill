@@ -4,7 +4,8 @@ export type KnowledgeType =
   | "preference"
   | "decision"
   | "mistake"
-  | "workaround";
+  | "workaround"
+  | "conflict";
 
 /** Knowledge scope */
 export type KnowledgeScope = "global" | "project";

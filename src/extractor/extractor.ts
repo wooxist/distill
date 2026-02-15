@@ -13,17 +13,17 @@ import type {
   KnowledgeScope,
   ExtractionTrigger,
 } from "../store/types.js";
+import { loadConfig } from "../config.js";
+import { readExistingDistillRules } from "./rules-reader.js";
 
 /** Raw extraction result from LLM */
 interface RawExtraction {
   content: string;
-  type: "pattern" | "preference" | "decision" | "mistake" | "workaround";
+  type: "pattern" | "preference" | "decision" | "mistake" | "workaround" | "conflict";
   scope: "global" | "project";
   tags: string[];
   confidence: number;
 }
-
-const MAX_TRANSCRIPT_CHARS = 100_000; // ~25k tokens, safe for Haiku
 
 /**
  * Extract knowledge from a .jsonl transcript file.
@@ -34,22 +34,28 @@ export async function extractKnowledge(opts: {
   trigger: ExtractionTrigger;
   projectName?: string;
   scopeOverride?: KnowledgeScope;
+  projectRoot?: string | null;
 }): Promise<KnowledgeInput[]> {
+  const config = loadConfig(opts.projectRoot);
+
   // 1. Parse transcript
   const turns = parseTranscript(opts.transcriptPath);
   if (turns.length < 2) return []; // need at least 1 exchange
 
   // 2. Format and truncate
   let formatted = formatTranscript(turns);
-  if (formatted.length > MAX_TRANSCRIPT_CHARS) {
-    formatted = truncateToRecent(turns, MAX_TRANSCRIPT_CHARS);
+  if (formatted.length > config.max_transcript_chars) {
+    formatted = truncateToRecent(turns, config.max_transcript_chars);
   }
 
-  // 3. Call LLM
-  const raw = await callLlm(formatted, opts.projectName);
+  // 3. Read existing distill rules for conflict detection
+  const existingRules = readExistingDistillRules(opts.projectRoot);
+
+  // 4. Call LLM
+  const raw = await callLlm(formatted, config.extraction_model, opts.projectName, existingRules);
   if (raw.length === 0) return [];
 
-  // 4. Convert to KnowledgeInput
+  // 5. Convert to KnowledgeInput
   const now = new Date().toISOString();
   return raw.map((r) => ({
     content: r.content,
@@ -66,9 +72,12 @@ export async function extractKnowledge(opts: {
   }));
 }
 
-async function callLlm(
+/** Generic LLM call — reused by extraction and crystallize */
+export async function callLlm(
   formattedTranscript: string,
-  projectName?: string
+  model: string,
+  projectName?: string,
+  existingRules?: string,
 ): Promise<RawExtraction[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -80,13 +89,13 @@ async function callLlm(
   const client = new Anthropic({ apiKey });
 
   const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model,
     max_tokens: 4096,
     system: EXTRACTION_SYSTEM_PROMPT,
     messages: [
       {
         role: "user",
-        content: buildExtractionPrompt(formattedTranscript, projectName),
+        content: buildExtractionPrompt(formattedTranscript, projectName, existingRules),
       },
     ],
   });
@@ -114,7 +123,7 @@ function parseExtractionResponse(text: string): RawExtraction[] {
     return parsed.filter(
       (item): item is RawExtraction =>
         typeof item.content === "string" &&
-        ["pattern", "preference", "decision", "mistake", "workaround"].includes(
+        ["pattern", "preference", "decision", "mistake", "workaround", "conflict"].includes(
           item.type
         ) &&
         ["global", "project"].includes(item.scope) &&
