@@ -110,7 +110,8 @@ export async function callLlm(
   return parseExtractionResponse(text);
 }
 
-function parseExtractionResponse(text: string): RawExtraction[] {
+/** @internal Exported for testing */
+export function parseExtractionResponse(text: string): RawExtraction[] {
   // Try to find JSON array in the response
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return [];

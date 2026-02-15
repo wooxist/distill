@@ -1,0 +1,4 @@
+not json at all
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"This line is valid"}]},"timestamp":"2024-01-01T00:00:00Z"}
+{truncated json
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"This is also valid"}]},"timestamp":"2024-01-01T00:01:00Z"}

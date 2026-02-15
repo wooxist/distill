@@ -200,7 +200,8 @@ export async function crystallize(opts: {
   return report;
 }
 
-function parseCrystallizeResponse(text: string): CrystallizeResult[] {
+/** @internal Exported for testing */
+export function parseCrystallizeResponse(text: string): CrystallizeResult[] {
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return [];
 

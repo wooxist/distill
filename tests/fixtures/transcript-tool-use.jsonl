@@ -1,0 +1,3 @@
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Read my config file"}]},"timestamp":"2024-01-01T00:00:00Z"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"read_file","input":{"path":"config.json"}},{"type":"text","text":"Here is your config file content."}]},"timestamp":"2024-01-01T00:01:00Z"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Let me analyze this..."},{"type":"text","text":"Based on the config, I suggest using port 3000."}]},"timestamp":"2024-01-01T00:02:00Z"}

@@ -1,0 +1,4 @@
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"How should I structure the TypeScript project?"}]},"timestamp":"2024-01-01T00:00:00Z"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I recommend using ESM modules with strict mode enabled. Keep src/ for source and build/ for output."}]},"timestamp":"2024-01-01T00:01:00Z"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Should I use default exports?"}]},"timestamp":"2024-01-01T00:02:00Z"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"No, prefer named exports. They are easier to refactor and provide better tree-shaking."}]},"timestamp":"2024-01-01T00:03:00Z"}

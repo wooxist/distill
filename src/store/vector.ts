@@ -88,7 +88,8 @@ interface FtsRow {
  * Sanitize query for FTS5 MATCH syntax.
  * Splits into tokens and joins with OR for broad matching.
  */
-function sanitizeFtsQuery(query: string): string {
+/** @internal Exported for testing */
+export function sanitizeFtsQuery(query: string): string {
   const tokens = query
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)

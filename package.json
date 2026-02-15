@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc && chmod 755 build/server.js",
     "dev": "tsc --watch",
-    "test": "node --test"
+    "test": "node --import tsx/esm --test 'tests/**/*.test.ts'"
   },
   "keywords": [
     "claude-code",
@@ -28,6 +28,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.2.3",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }
