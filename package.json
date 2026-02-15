@@ -1,0 +1,33 @@
+{
+  "name": "distill",
+  "version": "1.0.0",
+  "description": "Distill knowledge from Claude Code conversations",
+  "type": "module",
+  "bin": {
+    "distill": "./build/server.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod 755 build/server.js",
+    "dev": "tsc --watch",
+    "test": "node --test"
+  },
+  "keywords": [
+    "claude-code",
+    "mcp",
+    "knowledge",
+    "distill"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.74.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "better-sqlite3": "^12.6.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.2.3",
+    "typescript": "^5.9.3"
+  }
+}
