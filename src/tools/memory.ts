@@ -7,6 +7,7 @@ import { detectProjectRoot } from "../store/scope.js";
 import { loadConfig } from "../config.js";
 import { crystallize } from "../extractor/crystallize.js";
 import type { KnowledgeChunk } from "../store/types.js";
+import { forEachScope } from "./helpers.js";
 
 export function registerMemoryTool(mcpServer: McpServer, server: Server): void {
   mcpServer.tool(
@@ -56,24 +57,9 @@ async function handleCrystallize(
 
     // Collect all chunks from both scopes
     const allChunks: KnowledgeChunk[] = [];
-
-    try {
-      const globalMeta = new MetadataStore("global");
-      allChunks.push(...globalMeta.getAll());
-      globalMeta.close();
-    } catch {
-      // global store may not exist yet
-    }
-
-    if (projectRoot) {
-      try {
-        const projectMeta = new MetadataStore("project", projectRoot);
-        allChunks.push(...projectMeta.getAll());
-        projectMeta.close();
-      } catch {
-        // project store may not exist yet
-      }
-    }
+    await forEachScope(undefined, projectRoot, ({ meta }) => {
+      allChunks.push(...meta.getAll());
+    });
 
     if (allChunks.length === 0) {
       return {

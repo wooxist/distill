@@ -1,9 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VectorStore } from "../store/vector.js";
-import { MetadataStore } from "../store/metadata.js";
 import { detectProjectRoot } from "../store/scope.js";
-import type { KnowledgeChunk, KnowledgeScope } from "../store/types.js";
+import type { KnowledgeChunk } from "../store/types.js";
+import { forEachScope } from "./helpers.js";
 
 export function registerRecallTool(server: McpServer): void {
   server.tool(
@@ -32,16 +31,11 @@ export function registerRecallTool(server: McpServer): void {
       const projectRoot = detectProjectRoot();
       const results: KnowledgeChunk[] = [];
 
-      const scopes: KnowledgeScope[] = scope
-        ? [scope]
-        : projectRoot
-          ? ["global", "project"]
-          : ["global"];
-
-      for (const s of scopes) {
-        try {
-          const vector = new VectorStore(s, projectRoot ?? undefined);
-          const meta = new MetadataStore(s, projectRoot ?? undefined);
+      await forEachScope(
+        scope,
+        projectRoot,
+        async ({ meta, vector }) => {
+          if (!vector) return;
 
           const hits = await vector.search(query, maxResults);
           for (const hit of hits) {
@@ -51,13 +45,9 @@ export function registerRecallTool(server: McpServer): void {
             meta.touch(hit.id);
             results.push(chunk);
           }
-
-          vector.close();
-          meta.close();
-        } catch {
-          // scope may not exist yet — skip
-        }
-      }
+        },
+        true,
+      );
 
       // Sort by confidence descending
       results.sort((a, b) => b.confidence - a.confidence);

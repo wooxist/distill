@@ -1,7 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { MetadataStore } from "../store/metadata.js";
 import { detectProjectRoot } from "../store/scope.js";
-import type { KnowledgeScope } from "../store/types.js";
+import { forEachScope } from "./helpers.js";
 
 export function registerDigestTool(server: McpServer): void {
   server.tool(
@@ -10,15 +9,10 @@ export function registerDigestTool(server: McpServer): void {
     {},
     async () => {
       const projectRoot = detectProjectRoot();
-      const scopes: KnowledgeScope[] = projectRoot
-        ? ["global", "project"]
-        : ["global"];
-
       const report: string[] = [];
 
-      for (const scope of scopes) {
+      await forEachScope(undefined, projectRoot, ({ scope, meta }) => {
         try {
-          const meta = new MetadataStore(scope, projectRoot ?? undefined);
           const all = meta.search({ scope, limit: 1000 });
 
           // Find potential duplicates (simple text similarity)
@@ -26,9 +20,7 @@ export function registerDigestTool(server: McpServer): void {
             [];
           for (let i = 0; i < all.length; i++) {
             for (let j = i + 1; j < all.length; j++) {
-              if (
-                simpleSimilarity(all[i].content, all[j].content) > 0.7
-              ) {
+              if (simpleSimilarity(all[i].content, all[j].content) > 0.7) {
                 duplicates.push({
                   a: all[i].id,
                   b: all[j].id,
@@ -40,10 +32,12 @@ export function registerDigestTool(server: McpServer): void {
 
           // Find low-confidence, never-accessed entries
           const stale = all.filter(
-            (k) => k.confidence < 0.5 && k.access_count === 0
+            (k) => k.confidence < 0.5 && k.access_count === 0,
           );
 
-          report.push(`## ${scope.toUpperCase()} scope (${all.length} entries)`);
+          report.push(
+            `## ${scope.toUpperCase()} scope (${all.length} entries)`,
+          );
 
           if (duplicates.length > 0) {
             report.push(
@@ -51,7 +45,7 @@ export function registerDigestTool(server: McpServer): void {
                 duplicates
                   .slice(0, 5)
                   .map((d) => `  - ${d.content}`)
-                  .join("\n")
+                  .join("\n"),
             );
           } else {
             report.push("\nNo duplicates detected.");
@@ -64,17 +58,15 @@ export function registerDigestTool(server: McpServer): void {
                   .slice(0, 5)
                   .map(
                     (k) =>
-                      `  - [${k.type}] (confidence: ${k.confidence}) ${k.content.slice(0, 60)}...`
+                      `  - [${k.type}] (confidence: ${k.confidence}) ${k.content.slice(0, 60)}...`,
                   )
-                  .join("\n")
+                  .join("\n"),
             );
           }
-
-          meta.close();
         } catch {
           report.push(`## ${scope.toUpperCase()} scope\n(no data yet)`);
         }
-      }
+      });
 
       return {
         content: [

@@ -7,6 +7,8 @@ import { VectorStore } from "../store/vector.js";
 import { detectProjectRoot } from "../store/scope.js";
 import { loadConfig } from "../config.js";
 import { crystallize } from "../extractor/crystallize.js";
+import { forEachScope } from "./helpers.js";
+import type { KnowledgeChunk } from "../store/types.js";
 
 export function registerLearnTool(mcpServer: McpServer, server: Server): void {
   mcpServer.tool(
@@ -101,19 +103,10 @@ export function registerLearnTool(mcpServer: McpServer, server: Server): void {
 
           if (newCount >= config.auto_crystallize_threshold) {
             // Collect all chunks for crystallize
-            const allChunks = [];
-            try {
-              const gm = new MetadataStore("global");
-              allChunks.push(...gm.getAll());
-              gm.close();
-            } catch { /* ignore */ }
-            if (projectRoot) {
-              try {
-                const pm = new MetadataStore("project", projectRoot);
-                allChunks.push(...pm.getAll());
-                pm.close();
-              } catch { /* ignore */ }
-            }
+            const allChunks: KnowledgeChunk[] = [];
+            await forEachScope(undefined, projectRoot, ({ meta }) => {
+              allChunks.push(...meta.getAll());
+            });
 
             const report = await crystallize({
               server,

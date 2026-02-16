@@ -1,8 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { MetadataStore } from "../store/metadata.js";
 import { detectProjectRoot } from "../store/scope.js";
-import type { KnowledgeScope } from "../store/types.js";
+import { forEachScope } from "./helpers.js";
 
 export function registerProfileTool(server: McpServer): void {
   server.tool(
@@ -16,17 +15,10 @@ export function registerProfileTool(server: McpServer): void {
     },
     async ({ scope }) => {
       const projectRoot = detectProjectRoot();
-      const scopes: KnowledgeScope[] = scope
-        ? [scope]
-        : projectRoot
-          ? ["global", "project"]
-          : ["global"];
-
       const sections: string[] = [];
 
-      for (const s of scopes) {
+      await forEachScope(scope, projectRoot, ({ scope: s, meta }) => {
         try {
-          const meta = new MetadataStore(s, projectRoot ?? undefined);
           const stats = meta.stats();
 
           const typeBreakdown = Object.entries(stats.byType)
@@ -34,7 +26,7 @@ export function registerProfileTool(server: McpServer): void {
             .join("\n");
 
           sections.push(
-            `## ${s.toUpperCase()} scope\nTotal: ${stats.total}\n\nBy type:\n${typeBreakdown || "  (empty)"}`
+            `## ${s.toUpperCase()} scope\nTotal: ${stats.total}\n\nBy type:\n${typeBreakdown || "  (empty)"}`,
           );
 
           // Show top accessed knowledge
@@ -45,17 +37,15 @@ export function registerProfileTool(server: McpServer): void {
               .slice(0, 3)
               .map(
                 (k) =>
-                  `  - [${k.type}] (accessed ${k.access_count}x) ${k.content.slice(0, 60)}...`
+                  `  - [${k.type}] (accessed ${k.access_count}x) ${k.content.slice(0, 60)}...`,
               )
               .join("\n");
             sections.push(`\nMost accessed:\n${top}`);
           }
-
-          meta.close();
         } catch {
           sections.push(`## ${s.toUpperCase()} scope\n(no data yet)`);
         }
-      }
+      });
 
       return {
         content: [
