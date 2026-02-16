@@ -1,6 +1,114 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseExtractionResponse } from "../src/extractor/extractor.ts";
+import { parseExtractionResponse, callLlm } from "../src/extractor/extractor.ts";
+import { EXTRACTION_SYSTEM_PROMPT } from "../src/extractor/prompts.ts";
+import { createMockServer } from "./helpers/mock-server.ts";
+
+describe("callLlm", () => {
+  const validResponse = JSON.stringify([
+    {
+      content: "Use ESM modules",
+      type: "preference",
+      scope: "global",
+      tags: ["typescript"],
+      confidence: 0.9,
+    },
+  ]);
+
+  it("sends correct message structure", async () => {
+    const { server, calls } = createMockServer({ response: validResponse });
+    await callLlm(server, "test transcript", "test-model");
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].messages.length, 1);
+    assert.equal(calls[0].messages[0].role, "user");
+    assert.equal(calls[0].messages[0].content.type, "text");
+    assert.ok(calls[0].messages[0].content.text?.includes("test transcript"));
+  });
+
+  it("sends system prompt", async () => {
+    const { server, calls } = createMockServer({ response: validResponse });
+    await callLlm(server, "transcript", "model");
+
+    assert.equal(calls[0].systemPrompt, EXTRACTION_SYSTEM_PROMPT);
+  });
+
+  it("sends model hints", async () => {
+    const { server, calls } = createMockServer({ response: validResponse });
+    await callLlm(server, "transcript", "claude-haiku-4-5-20251001");
+
+    assert.deepEqual(calls[0].modelPreferences?.hints, [
+      { name: "claude-haiku-4-5-20251001" },
+    ]);
+  });
+
+  it("sets cost and speed priority", async () => {
+    const { server, calls } = createMockServer({ response: validResponse });
+    await callLlm(server, "transcript", "model");
+
+    assert.equal(calls[0].modelPreferences?.costPriority, 0.8);
+    assert.equal(calls[0].modelPreferences?.speedPriority, 0.8);
+  });
+
+  it("sets maxTokens to 4096", async () => {
+    const { server, calls } = createMockServer({ response: validResponse });
+    await callLlm(server, "transcript", "model");
+
+    assert.equal(calls[0].maxTokens, 4096);
+  });
+
+  it("returns parsed extractions", async () => {
+    const { server } = createMockServer({ response: validResponse });
+    const result = await callLlm(server, "transcript", "model");
+
+    assert.equal(result.length, 1);
+    assert.equal(result[0].content, "Use ESM modules");
+    assert.equal(result[0].type, "preference");
+    assert.equal(result[0].scope, "global");
+  });
+
+  it("returns empty on empty response", async () => {
+    const { server } = createMockServer({ response: "" });
+    const result = await callLlm(server, "transcript", "model");
+
+    assert.equal(result.length, 0);
+  });
+
+  it("returns empty on non-JSON response", async () => {
+    const { server } = createMockServer({
+      response: "No knowledge found in this transcript.",
+    });
+    const result = await callLlm(server, "transcript", "model");
+
+    assert.equal(result.length, 0);
+  });
+
+  it("propagates server errors", async () => {
+    const { server } = createMockServer({
+      error: new Error("sampling failed"),
+    });
+
+    await assert.rejects(
+      () => callLlm(server, "transcript", "model"),
+      { message: "sampling failed" },
+    );
+  });
+
+  it("includes project name in prompt", async () => {
+    const { server, calls } = createMockServer({ response: "[]" });
+    await callLlm(server, "transcript", "model", "distill");
+
+    assert.ok(calls[0].messages[0].content.text?.includes("distill"));
+  });
+
+  it("includes existing rules in prompt", async () => {
+    const { server, calls } = createMockServer({ response: "[]" });
+    await callLlm(server, "transcript", "model", undefined, "### distill-style.md\n- Use strict mode");
+
+    assert.ok(calls[0].messages[0].content.text?.includes("<existing_rules>"));
+    assert.ok(calls[0].messages[0].content.text?.includes("Use strict mode"));
+  });
+});
 
 describe("parseExtractionResponse", () => {
   it("parses valid JSON array", () => {

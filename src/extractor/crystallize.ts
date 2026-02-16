@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join, basename } from "node:path";
 import { homedir } from "node:os";
@@ -89,13 +89,15 @@ function resolveRulesDir(scope: "global" | "project", projectRoot?: string | nul
 
 /**
  * Run the crystallize pipeline: analyze chunks → generate/update rules.
+ * Uses MCP sampling to request LLM completion from the client (Claude Code).
  */
 export async function crystallize(opts: {
+  server: Server;
   chunks: KnowledgeChunk[];
   model: string;
   projectRoot?: string | null;
 }): Promise<CrystallizeReport> {
-  const { chunks, model, projectRoot } = opts;
+  const { server, chunks, model, projectRoot } = opts;
 
   if (chunks.length === 0) {
     return { created: [], updated: [], removed: [], total_rules: 0 };
@@ -124,32 +126,29 @@ export async function crystallize(opts: {
     tags: c.tags,
   }));
 
-  // 3. Call LLM
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is required for crystallize");
-  }
-
-  const client = new Anthropic({ apiKey });
-  const response = await client.messages.create({
-    model,
-    max_tokens: 4096,
-    system: CRYSTALLIZE_SYSTEM_PROMPT,
+  // 3. Call LLM via MCP sampling
+  const result = await server.createMessage({
     messages: [
       {
         role: "user",
-        content: buildCrystallizePrompt(
-          entries,
-          existingRulesText || undefined,
-        ),
+        content: {
+          type: "text",
+          text: buildCrystallizePrompt(
+            entries,
+            existingRulesText || undefined,
+          ),
+        },
       },
     ],
+    systemPrompt: CRYSTALLIZE_SYSTEM_PROMPT,
+    modelPreferences: {
+      hints: [{ name: model }],
+      intelligencePriority: 0.9,
+    },
+    maxTokens: 4096,
   });
 
-  const text = response.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("");
+  const text = result.content.type === "text" ? result.content.text : "";
 
   // 4. Parse results
   const results = parseCrystallizeResponse(text);

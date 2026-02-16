@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { z } from "zod";
 import { extractKnowledge } from "../extractor/extractor.js";
 import { MetadataStore } from "../store/metadata.js";
@@ -7,8 +8,8 @@ import { detectProjectRoot } from "../store/scope.js";
 import { loadConfig } from "../config.js";
 import { crystallize } from "../extractor/crystallize.js";
 
-export function registerLearnTool(server: McpServer): void {
-  server.tool(
+export function registerLearnTool(mcpServer: McpServer, server: Server): void {
+  mcpServer.tool(
     "learn",
     "Extract and save knowledge from a conversation transcript",
     {
@@ -26,8 +27,9 @@ export function registerLearnTool(server: McpServer): void {
       const projectName = projectRoot?.split("/").pop() ?? undefined;
       const config = loadConfig(projectRoot);
 
-      // Extract knowledge from transcript
+      // Extract knowledge from transcript via MCP sampling
       const chunks = await extractKnowledge({
+        server,
         transcriptPath: transcript_path,
         sessionId: session_id,
         trigger: "manual",
@@ -114,6 +116,7 @@ export function registerLearnTool(server: McpServer): void {
             }
 
             const report = await crystallize({
+              server,
               chunks: allChunks,
               model: config.crystallize_model,
               projectRoot,

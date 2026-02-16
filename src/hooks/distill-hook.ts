@@ -3,17 +3,25 @@
 /**
  * Distill hook handler for PreCompact and SessionEnd events.
  *
- * Receives hook event data via stdin (JSON), extracts knowledge
- * from the session transcript, and stores it.
+ * Since extraction uses MCP sampling (server.createMessage),
+ * the hook cannot perform extraction directly — it runs outside
+ * the MCP server process. Instead, it:
+ *   1. Writes a pending-learn.json file so the SessionStart hook can
+ *      inject learn context into the next session automatically.
+ *   2. Outputs a prompt to stdout for Claude Code to call `learn`.
  *
- * Usage: echo '{"session_id":"...","transcript_path":"..."}' | node distill-hook.js
+ * Usage in .claude/settings.json:
+ *   "hooks": {
+ *     "PreCompact": [{ "command": "node build/hooks/distill-hook.js" }],
+ *     "SessionEnd": [{ "command": "node build/hooks/distill-hook.js" }]
+ *   }
  */
 
-import { extractKnowledge } from "../extractor/extractor.js";
-import { MetadataStore } from "../store/metadata.js";
-import { VectorStore } from "../store/vector.js";
-import { detectProjectRoot } from "../store/scope.js";
-import type { ExtractionTrigger } from "../store/types.js";
+import { writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { PENDING_LEARN_PATH } from "./pending-learn.js";
+import type { PendingLearn } from "./pending-learn.js";
 
 interface HookInput {
   session_id: string;
@@ -45,58 +53,37 @@ async function main() {
     process.exit(1);
   }
 
-  // Determine trigger type from hook event name
-  const trigger: ExtractionTrigger =
-    hookData.hook_event_name === "PreCompact"
-      ? "pre_compact"
-      : "session_end";
+  const event = hookData.hook_event_name ?? "unknown";
 
-  const projectRoot = hookData.cwd
-    ? detectProjectRoot(hookData.cwd)
-    : detectProjectRoot();
-  const projectName = projectRoot?.split("/").pop() ?? undefined;
+  // Write pending-learn.json for SessionStart hook to pick up
+  try {
+    const pendingDir = join(homedir(), ".distill");
+    mkdirSync(pendingDir, { recursive: true });
+    const pending: PendingLearn = {
+      session_id: hookData.session_id,
+      transcript_path: hookData.transcript_path,
+      event,
+      timestamp: new Date().toISOString(),
+    };
+    writeFileSync(PENDING_LEARN_PATH, JSON.stringify(pending, null, 2));
+  } catch (err) {
+    // Non-fatal — still output prompt to stdout
+    console.error(`distill-hook: failed to write pending-learn.json: ${err}`);
+  }
 
   console.error(
-    `distill-hook: extracting from session ${hookData.session_id} (${trigger})`
+    `distill-hook: ${event} event — requesting learn for session ${hookData.session_id}`
   );
 
-  try {
-    const chunks = await extractKnowledge({
-      transcriptPath: hookData.transcript_path,
-      sessionId: hookData.session_id,
-      trigger,
-      projectName,
-    });
+  // stdout: Claude Code will see this and can act on it
+  const message = [
+    `[Distill] ${event} event detected.`,
+    `Please run the \`learn\` tool to extract knowledge from this session.`,
+    `transcript_path: ${hookData.transcript_path}`,
+    `session_id: ${hookData.session_id}`,
+  ].join("\n");
 
-    if (chunks.length === 0) {
-      console.error("distill-hook: no knowledge extracted");
-      return;
-    }
-
-    let saved = 0;
-    for (const chunk of chunks) {
-      try {
-        const meta = new MetadataStore(chunk.scope, projectRoot ?? undefined);
-        const vector = new VectorStore(chunk.scope, projectRoot ?? undefined);
-
-        const inserted = meta.insert(chunk);
-        vector.index(inserted.id, inserted.content, inserted.tags);
-
-        meta.close();
-        vector.close();
-        saved++;
-      } catch (err) {
-        console.error(`distill-hook: failed to save chunk: ${err}`);
-      }
-    }
-
-    console.error(
-      `distill-hook: extracted ${chunks.length}, saved ${saved} knowledge chunks`
-    );
-  } catch (err) {
-    console.error(`distill-hook: extraction failed: ${err}`);
-    process.exit(1);
-  }
+  process.stdout.write(message);
 }
 
 function readStdin(): Promise<string> {

@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   parseTranscript,
   formatTranscript,
@@ -27,8 +27,10 @@ interface RawExtraction {
 
 /**
  * Extract knowledge from a .jsonl transcript file.
+ * Uses MCP sampling to request LLM completion from the client (Claude Code).
  */
 export async function extractKnowledge(opts: {
+  server: Server;
   transcriptPath: string;
   sessionId: string;
   trigger: ExtractionTrigger;
@@ -51,8 +53,8 @@ export async function extractKnowledge(opts: {
   // 3. Read existing distill rules for conflict detection
   const existingRules = readExistingDistillRules(opts.projectRoot);
 
-  // 4. Call LLM
-  const raw = await callLlm(formatted, config.extraction_model, opts.projectName, existingRules);
+  // 4. Call LLM via MCP sampling
+  const raw = await callLlm(opts.server, formatted, config.extraction_model, opts.projectName, existingRules);
   if (raw.length === 0) return [];
 
   // 5. Convert to KnowledgeInput
@@ -72,39 +74,35 @@ export async function extractKnowledge(opts: {
   }));
 }
 
-/** Generic LLM call — reused by extraction and crystallize */
+/** LLM call via MCP sampling — client (Claude Code) handles the actual LLM request */
 export async function callLlm(
+  server: Server,
   formattedTranscript: string,
   model: string,
   projectName?: string,
   existingRules?: string,
 ): Promise<RawExtraction[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "ANTHROPIC_API_KEY environment variable is required for extraction"
-    );
-  }
-
-  const client = new Anthropic({ apiKey });
-
-  const response = await client.messages.create({
-    model,
-    max_tokens: 4096,
-    system: EXTRACTION_SYSTEM_PROMPT,
+  const result = await server.createMessage({
     messages: [
       {
         role: "user",
-        content: buildExtractionPrompt(formattedTranscript, projectName, existingRules),
+        content: {
+          type: "text",
+          text: buildExtractionPrompt(formattedTranscript, projectName, existingRules),
+        },
       },
     ],
+    systemPrompt: EXTRACTION_SYSTEM_PROMPT,
+    modelPreferences: {
+      hints: [{ name: model }],
+      costPriority: 0.8,
+      speedPriority: 0.8,
+    },
+    maxTokens: 4096,
   });
 
-  // Extract text from response
-  const text = response.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("");
+  // Extract text from sampling response
+  const text = result.content.type === "text" ? result.content.text : "";
 
   // Parse JSON from response
   return parseExtractionResponse(text);

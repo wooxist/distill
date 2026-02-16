@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { z } from "zod";
 import { MetadataStore } from "../store/metadata.js";
 import { VectorStore } from "../store/vector.js";
@@ -7,8 +8,8 @@ import { loadConfig } from "../config.js";
 import { crystallize } from "../extractor/crystallize.js";
 import type { KnowledgeChunk } from "../store/types.js";
 
-export function registerMemoryTool(server: McpServer): void {
-  server.tool(
+export function registerMemoryTool(mcpServer: McpServer, server: Server): void {
+  mcpServer.tool(
     "memory",
     "Manage knowledge: promote/demote scope, delete entries, or crystallize rules",
     {
@@ -23,7 +24,7 @@ export function registerMemoryTool(server: McpServer): void {
       const projectRoot = detectProjectRoot();
 
       if (action === "crystallize") {
-        return handleCrystallize(projectRoot);
+        return handleCrystallize(server, projectRoot);
       }
 
       if (!id) {
@@ -47,6 +48,7 @@ export function registerMemoryTool(server: McpServer): void {
 }
 
 async function handleCrystallize(
+  server: Server,
   projectRoot: string | null,
 ): Promise<{ content: Array<{ type: "text"; text: string }> }> {
   try {
@@ -85,6 +87,7 @@ async function handleCrystallize(
     }
 
     const report = await crystallize({
+      server,
       chunks: allChunks,
       model: config.crystallize_model,
       projectRoot,

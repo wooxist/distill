@@ -20,7 +20,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.74.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "better-sqlite3": "^12.6.2",
     "zod": "^3.25.76"

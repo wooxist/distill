@@ -8,21 +8,24 @@ import { registerProfileTool } from "./tools/profile.js";
 import { registerDigestTool } from "./tools/digest.js";
 import { registerMemoryTool } from "./tools/memory.js";
 
-const server = new McpServer({
+const mcpServer = new McpServer({
   name: "distill",
   version: "1.0.0",
 });
 
+// Raw Server instance for MCP sampling (server.createMessage)
+const rawServer = mcpServer.server;
+
 // Register all tools
-registerRecallTool(server);
-registerLearnTool(server);
-registerProfileTool(server);
-registerDigestTool(server);
-registerMemoryTool(server);
+registerRecallTool(mcpServer);
+registerLearnTool(mcpServer, rawServer);
+registerProfileTool(mcpServer);
+registerDigestTool(mcpServer);
+registerMemoryTool(mcpServer, rawServer);
 
 async function main() {
   const transport = new StdioServerTransport();
-  await server.connect(transport);
+  await mcpServer.connect(transport);
 }
 
 main().catch((error) => {
