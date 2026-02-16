@@ -4,6 +4,8 @@
 
 Distill is an MCP (Model Context Protocol) server that analyzes your AI coding conversations and extracts patterns, preferences, decisions, and lessons learned — so Claude remembers what matters across sessions.
 
+**No API key needed.** Distill uses MCP Sampling, which routes through your existing Claude subscription.
+
 ## How It Works
 
 When you work with Claude Code, valuable knowledge emerges through conversation — corrections you make, patterns you establish, architectural decisions you commit to. Distill captures these automatically.
@@ -22,7 +24,7 @@ Each extracted piece of knowledge is classified by type, scope, and confidence, 
 ### 1. Clone and build
 
 ```bash
-git clone https://github.com/your-username/distill.git
+git clone https://github.com/wooxist/distill.git
 cd distill
 npm install
 npm run build
@@ -43,33 +45,19 @@ Add to `~/.claude/mcp.json`:
 }
 ```
 
-### 3. Set up API key
+### 3. Enable automatic extraction (optional)
 
-Distill uses the Anthropic API for knowledge extraction:
-
-```bash
-export ANTHROPIC_API_KEY="your-api-key"
-```
-
-### 4. Enable automatic extraction (optional)
-
-Copy the hooks configuration to enable extraction on context compaction and session end:
-
-```bash
-cp hooks/hooks.json ~/.claude/hooks.json
-```
-
-Edit the paths in `hooks.json` to point to your installation directory.
+Add hooks to `~/.claude/settings.json` for automatic extraction on context compaction, session end, and session start. See [docs/configuration.md](docs/configuration.md) for the full hooks configuration.
 
 ## MCP Tools
 
 | Tool | Description |
 |------|-------------|
 | `recall(query)` | Search your knowledge base by semantic query |
-| `learn(transcript_path)` | Manually extract knowledge from a conversation transcript |
+| `learn(transcript_path)` | Extract knowledge from a conversation transcript (auto-crystallize if threshold met) |
 | `profile()` | View statistics about your accumulated knowledge |
 | `digest()` | Find duplicate entries and analyze patterns |
-| `memory(action, id)` | Promote, demote, or delete knowledge entries |
+| `memory(action, id)` | promote/demote/delete/crystallize knowledge entries |
 
 ### Usage Examples
 
@@ -85,9 +73,10 @@ profile()
 
 **Manage knowledge scope:**
 ```
-memory("promote", "chunk-id")   # project → global
-memory("demote", "chunk-id")    # global → project
-memory("delete", "chunk-id")    # remove entry
+memory("promote", "chunk-id")      # project → global
+memory("demote", "chunk-id")       # global → project
+memory("delete", "chunk-id")       # remove entry
+memory("crystallize")              # consolidate into rule files
 ```
 
 ## Knowledge Types
@@ -99,6 +88,7 @@ memory("delete", "chunk-id")    # remove entry
 | `decision` | Architectural or technology choices | "Chose SQLite over PostgreSQL for local storage" |
 | `mistake` | Corrections and lessons learned | "Don't use `any` type — use `unknown` instead" |
 | `workaround` | Bug workarounds and edge cases | "Library X has a bug with Y — use Z instead" |
+| `conflict` | Contradictions with existing rules | "New pattern conflicts with distill-style.md rule #2" |
 
 ## Scope
 
@@ -117,7 +107,7 @@ See [docs/configuration.md](docs/configuration.md) for detailed setup instructio
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for technical details.
+See [docs/architecture.md](docs/architecture.md) for technical details and system diagrams.
 
 ## Contributing
 
