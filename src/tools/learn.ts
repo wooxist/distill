@@ -59,7 +59,7 @@ export function registerLearnTool(mcpServer: McpServer, server: Server): void {
           const vector = new VectorStore(chunk.scope, projectRoot ?? undefined);
 
           const inserted = meta.insert(chunk);
-          vector.index(inserted.id, inserted.content, inserted.tags);
+          await vector.index(inserted.id, inserted.content, inserted.tags);
 
           if (chunk.type === "conflict") {
             conflictWarnings.push(`  ⚠ CONFLICT: ${chunk.content.slice(0, 100)}`);

@@ -169,11 +169,11 @@ function handleDelete(
   };
 }
 
-function handlePromoteDemote(
+async function handlePromoteDemote(
   action: "promote" | "demote",
   id: string,
   projectRoot: string | null,
-): { content: Array<{ type: "text"; text: string }> } {
+): Promise<{ content: Array<{ type: "text"; text: string }> }> {
   const fromScope = action === "promote" ? "project" : "global";
   const toScope = action === "promote" ? "global" : "project";
 
@@ -220,7 +220,7 @@ function handlePromoteDemote(
       confidence: chunk.confidence,
     };
     const inserted = toMeta.insert(input);
-    toVector.index(inserted.id, inserted.content, inserted.tags);
+    await toVector.index(inserted.id, inserted.content, inserted.tags);
 
     fromMeta.delete(id);
     fromVector.remove(id);

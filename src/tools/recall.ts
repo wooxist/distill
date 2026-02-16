@@ -43,7 +43,7 @@ export function registerRecallTool(server: McpServer): void {
           const vector = new VectorStore(s, projectRoot ?? undefined);
           const meta = new MetadataStore(s, projectRoot ?? undefined);
 
-          const hits = vector.search(query, maxResults);
+          const hits = await vector.search(query, maxResults);
           for (const hit of hits) {
             const chunk = meta.getById(hit.id);
             if (!chunk) continue;
